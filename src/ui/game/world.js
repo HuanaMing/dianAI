@@ -22,8 +22,8 @@ export function blocked(x,y,r,blocks) {
 }
 export function spawnEnemy(state,w,h) {
   const side=Math.floor(Math.random()*4), pad=26;
-  const x=side===0?Math.random()*w:side===1?w-pad:Math.random()*w;
-  const y=side===2?Math.random()*h:side===3?h-pad:side===0?pad:Math.random()*h;
+  const x=side===1?w-pad:side===3?pad:Math.random()*w;
+  const y=side===0?pad:side===2?h-pad:Math.random()*h;
   const roll=Math.random(), type=roll<.58?"chaser":roll<.83?"runner":"tank";
   const spec={
     chaser:{r:11,hp:3,speed:74,color:COLORS.danger,damage:12,score:10},
@@ -74,13 +74,29 @@ export function updateWorld(state,dt,w,h) {
     for(const e of state.enemies) if(e.hp>0&&distance(bullet,e)<e.r+bullet.r) {
       e.hp-=bullet.damage;e.flash=.08;bullet.pierce--;
       if(bullet.pierce<0)bullet.life=0;
-      if(p.rift&&Math.random()<.12){bullet.x=w-bullet.x;bullet.y=h-bullet.y;}
+      if(p.rift&&Math.random()<.12){bullet.x=w-bullet.x;bullet.y=h-bullet.y;bullet.life=Math.max(bullet.life,.25);bullet.pierce=Math.max(0,bullet.pierce);}
       if(e.hp<=0){state.kills++;state.score+=e.score;state.orbs.push({x:e.x,y:e.y,r:5,value:1});}
       break;
     }
     if(state.boss&&distance(bullet,state.boss)<state.boss.r+bullet.r) {
       state.boss.hp-=bullet.damage;bullet.life=0;
       if(state.boss.hp<=0){state.score+=500;state.boss=null;state.message="裂隙核心已瓦解！";}
+    }
+  }
+  if(p.orbit){
+    const count=Math.max(1,p.orbit);
+    for(const e of state.enemies){
+      let touched=false;
+      for(let i=0;i<count;i++){
+        const a=state.elapsed*2+i*Math.PI*2/count;
+        const ox=p.x+Math.cos(a)*29,oy=p.y+Math.sin(a)*29;
+        if(Math.hypot(ox-e.x,oy-e.y)<e.r+6){touched=true;break;}
+      }
+      e.orbitCooldown=(e.orbitCooldown||0)-dt;
+      if(touched&&e.orbitCooldown<=0){
+        e.hp-=2;e.orbitCooldown=.55;e.flash=.08;
+        if(e.hp<=0){state.kills++;state.score+=e.score;state.orbs.push({x:e.x,y:e.y,r:5,value:1});}
+      }
     }
   }
   state.bullets=state.bullets.filter(b=>b.life>0&&b.x>-20&&b.x<w+20&&b.y>-20&&b.y<h+20);
@@ -103,7 +119,7 @@ export function fireAtTarget(state) {
   const p=state.player,target=nearest(p,state.enemies.concat(state.boss?[state.boss]:[]));
   if(!target)return;
   const a=Math.atan2(target.y-p.y,target.x-p.x),speed=p.bulletSpeed;
-  const fire=(angle)=>state.bullets.push({x:p.x,y:p.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4,life:p.range/speed,damage:2+p.closeDamage,pierce:p.pierce,curve:p.curve,bounced:false});
+  const fire=(angle)=>state.bullets.push({x:p.x,y:p.y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,r:4,life:p.range/speed,damage:2+(distance(p,target)<125?p.closeDamage:0),pierce:p.pierce,curve:p.curve,bounced:false});
   fire(a);if(p.spread){fire(a-.24);fire(a+.24);}
 }
 
