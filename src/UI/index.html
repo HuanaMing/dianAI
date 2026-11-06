@@ -7,53 +7,143 @@
   <meta name="description" content="流形迴響：一個會回應你行為的俯視角生存射擊原型。">
   <title>流形迴響｜MANIFOLD ECHOES</title>
   <style>
-    :root{color-scheme:dark;--blue:#5D81C7;--space:#37339D;--energy:#9CC9D9;--red:#BE4449;--grey:#B3B3B3;--white:#F3F3F3;--ink:#333333}
-    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--ink);color:var(--white);font-family:ui-sans-serif,system-ui,-apple-system,"Noto Sans TC",sans-serif}
-    body{min-height:100dvh;display:flex;justify-content:center;padding:14px}
-    .shell{width:min(100%,1100px);display:flex;flex-direction:column;gap:10px}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px}
-    .brand{font-weight:850;letter-spacing:.12em;font-size:clamp(15px,2.5vw,21px)}.brand span{display:block;color:var(--energy);font-size:10px;letter-spacing:.24em;font-weight:600;margin-top:3px}
-    .hint{font-size:12px;color:var(--grey);text-align:right}
-    .hud{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:8px}
-    .stat{background:var(--space);border:1px solid var(--grey);border-radius:10px;padding:8px 10px;min-width:0}
-    .stat label{display:block;color:var(--energy);font-size:10px;letter-spacing:.12em}.stat strong{font-size:15px;font-variant-numeric:tabular-nums}
-    .meter{height:5px;background:var(--ink);border-radius:9px;overflow:hidden;margin-top:6px}.meter i{display:block;height:100%;width:100%;background:var(--blue)}
-    .stage{position:relative;flex:1;min-height:420px;height:min(68vh,700px);border:1px solid var(--grey);border-radius:14px;overflow:hidden;background:var(--space);touch-action:none}
-    canvas{display:block;width:100%;height:100%;touch-action:none}
-    .message{position:absolute;top:10px;left:12px;right:12px;text-align:center;pointer-events:none;color:var(--white);font-size:12px;text-shadow:0 1px 3px var(--ink)}
-    .overlay{position:absolute;inset:0;display:grid;place-items:center;padding:18px;background:rgba(51,51,51,.78);z-index:3}
-    .overlay[hidden]{display:none}.panel{width:min(100%,520px);padding:24px;border:1px solid var(--energy);border-radius:16px;background:var(--space);text-align:center;box-shadow:0 14px 50px rgba(51,51,51,.45)}
-    h1{font-size:clamp(23px,5vw,34px);margin:0 0 10px;letter-spacing:.04em}.panel p{color:var(--energy);font-size:14px;line-height:1.7;margin:0 0 18px}
-    .actions{display:grid;gap:9px}.action{width:100%;border:1px solid var(--energy);border-radius:9px;padding:12px 14px;background:var(--blue);color:var(--ink);font-weight:800;font-size:14px;cursor:pointer;text-align:left}.action:hover,.action:focus-visible{outline:2px solid var(--white);outline-offset:2px;background:var(--energy)}
-    .controls{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--grey);font-size:12px}
-    .mobile-controls{display:none;align-items:end;justify-content:space-between;pointer-events:none;position:absolute;inset:auto 14px 14px;z-index:2}
-    #joystick{width:116px;height:116px;border:1px solid var(--energy);border-radius:50%;background:rgba(55,51,157,.45);pointer-events:auto;touch-action:none;display:grid;place-items:center}
-    #stick{width:44px;height:44px;border-radius:50%;background:var(--blue);border:2px solid var(--white);pointer-events:none}
-    #rotate{pointer-events:auto;border:1px solid var(--energy);border-radius:12px;background:var(--space);color:var(--white);padding:12px 14px;font-weight:700;touch-action:manipulation}
-    .legend{display:flex;flex-wrap:wrap;gap:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-    @media(max-width:650px){body{padding:8px}.hud{grid-template-columns:repeat(4,1fr)}.stat:first-child{grid-column:span 2}.stage{height:65dvh;min-height:390px}.hint{display:none}.mobile-controls{display:flex}.controls{font-size:11px}.desktop-only{display:none}}
-    @media(hover:none){.mobile-controls{display:flex}}
+    :root {
+      color-scheme: dark;
+      --blue: #5D81C7; --space: #37339D; --energy: #9CC9D9;
+      --red: #BE4449; --grey: #B3B3B3; --white: #F3F3F3; --ink: #333333;
+      --line: 1px solid var(--grey);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", sans-serif;
+      background: var(--ink); color: var(--white);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--ink); }
+    body { min-height: 100dvh; padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }
+    button { font: inherit; }
+    button:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
+    .shell { width: min(100%, 1240px); min-height: calc(100dvh - 28px); margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .topline { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 2px 4px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark { width: 34px; height: 34px; flex: 0 0 auto; border: 2px solid var(--energy); border-radius: 58% 42% 55% 45%; transform: rotate(35deg); position: relative; }
+    .brand-mark::after { content: ""; position: absolute; inset: 7px; border: 1px solid var(--blue); border-radius: 42% 58% 40% 60%; }
+    .brand-name { font-size: clamp(17px, 2.4vw, 23px); font-weight: 850; letter-spacing: .12em; line-height: 1.15; }
+    .brand-sub { display: block; color: var(--energy); font-size: 9px; letter-spacing: .25em; font-weight: 650; margin-top: 5px; }
+    .top-hint { color: var(--grey); font-size: 11px; text-align: right; letter-spacing: .04em; }
+    .hud { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(180px, 1.2fr) repeat(4, minmax(64px, .5fr)); gap: 8px; }
+    .stat { position: relative; min-width: 0; padding: 10px 12px 11px; border: var(--line); border-radius: 15px 7px 15px 7px; background: var(--space); overflow: hidden; }
+    .stat::before { content: ""; position: absolute; width: 34px; height: 34px; right: -17px; top: -17px; border: 1px solid var(--energy); border-radius: 50%; }
+    .stat-label { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--energy); font-size: 9px; letter-spacing: .16em; font-weight: 750; }
+    .stat-value { display: block; margin-top: 4px; font-size: clamp(15px, 2vw, 19px); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .02em; white-space: nowrap; }
+    .stat-value small { font-size: 10px; color: var(--grey); font-weight: 600; }
+    .meter { height: 5px; margin-top: 8px; border: 1px solid var(--grey); border-radius: 20px; overflow: hidden; background: var(--ink); }
+    .meter i { display: block; height: 100%; width: 100%; background: var(--blue); transition: width .18s ease-out; }
+    #xp-fill { background: var(--energy); }
+    .stage { position: relative; flex: 1; min-height: 420px; height: min(68vh, 760px); border: 1px solid var(--energy); border-radius: 24px 9px 24px 9px; overflow: hidden; background: var(--space); isolation: isolate; }
+    .stage::after { content: ""; position: absolute; inset: 8px; border: 1px solid var(--blue); border-radius: 18px 6px 18px 6px; pointer-events: none; z-index: 1; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    .message { position: absolute; z-index: 2; top: 19px; left: 24px; right: 24px; text-align: center; pointer-events: none; color: var(--white); font-size: 11px; font-weight: 650; letter-spacing: .08em; text-shadow: 0 1px 0 var(--ink); }
+    .boss-status { position: absolute; z-index: 2; top: 46px; left: 50%; transform: translateX(-50%); width: min(360px, 64%); padding: 8px 13px 10px; border: 1px solid var(--red); border-radius: 4px 15px 4px 15px; background: var(--ink); }
+    .boss-status[hidden] { display: none; }
+    .boss-heading { display: flex; justify-content: space-between; gap: 10px; color: var(--white); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+    .boss-heading span:last-child { color: var(--red); }
+    #boss-fill { background: var(--red); }
+    .mobile-controls { display: none; align-items: end; justify-content: space-between; pointer-events: none; position: absolute; inset: auto 22px 22px; z-index: 2; }
+    #joystick { width: 116px; height: 116px; border: 1px solid var(--energy); border-radius: 50%; background: var(--space); pointer-events: auto; touch-action: none; display: grid; place-items: center; }
+    #stick { width: 44px; height: 44px; border-radius: 50% 42% 54% 46%; background: var(--blue); border: 2px solid var(--white); pointer-events: none; }
+    #rotate { pointer-events: auto; border: 1px solid var(--energy); border-radius: 16px 6px 16px 6px; background: var(--space); color: var(--white); padding: 13px 16px; font-size: 12px; font-weight: 800; touch-action: manipulation; min-height: 48px; }
+    #rotate:active { background: var(--blue); color: var(--ink); }
+    .overlay { position: absolute; z-index: 4; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(51, 51, 51, .88); }
+    .overlay[hidden] { display: none; }
+    .panel { width: min(100%, 540px); max-height: 100%; overflow-y: auto; padding: clamp(22px, 4vw, 34px); border: 1px solid var(--energy); border-radius: 34px 10px 34px 10px; background: var(--space); text-align: center; }
+    .panel::before { content: "MANIFOLD SIGNAL / ACTIVE"; display: block; margin-bottom: 13px; color: var(--energy); font-size: 9px; font-weight: 800; letter-spacing: .24em; }
+    h1 { margin: 0 0 10px; font-size: clamp(24px, 5vw, 36px); letter-spacing: .08em; }
+    .panel-copy { max-width: 420px; margin: 0 auto 22px; color: var(--energy); font-size: 13px; line-height: 1.8; }
+    .actions { display: grid; gap: 9px; }
+    .action { width: 100%; border: 1px solid var(--energy); border-radius: 18px 6px 18px 6px; padding: 14px 17px; background: var(--blue); color: var(--ink); font-weight: 850; font-size: 14px; cursor: pointer; text-align: center; }
+    .action:hover, .action:focus-visible { background: var(--energy); }
+    .upgrade-panel { width: min(100%, 900px); }
+    .upgrade-panel .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+    .upgrade-card { min-height: 190px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 12px; padding: 18px; text-align: left; background: var(--ink); color: var(--white); border: 1px solid var(--grey); border-radius: 24px 7px 24px 7px; cursor: pointer; }
+    .upgrade-card:hover, .upgrade-card:focus-visible { border-color: var(--energy); background: var(--space); }
+    .upgrade-kind { color: var(--energy); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+    .upgrade-name { font-size: 18px; font-weight: 850; line-height: 1.35; }
+    .upgrade-desc { color: var(--grey); font-size: 12px; line-height: 1.7; }
+    .upgrade-prompt { margin-top: auto; color: var(--energy); font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+    .footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--grey); font-size: 10px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 12px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+    .dot { width: 7px; height: 7px; display: inline-block; border-radius: 50%; }
+    @media (max-width: 760px) {
+      body { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); }
+      .shell { min-height: calc(100dvh - 16px); gap: 8px; }
+      .topline { padding: 2px 4px; }
+      .brand-mark { width: 29px; height: 29px; }
+      .top-hint { display: none; }
+      .hud { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+      .stat { padding: 8px 9px; border-radius: 12px 5px 12px 5px; }
+      .stat-vitality { grid-column: span 3; }
+      .stat-resonance { grid-column: span 3; }
+      .stat-compact { grid-column: span 2; }
+      .stat-value { font-size: 15px; }
+      .stat-label { font-size: 8px; letter-spacing: .1em; }
+      .stage { height: 64dvh; min-height: 390px; max-height: 720px; border-radius: 18px 7px 18px 7px; }
+      .stage::after { inset: 5px; border-radius: 13px 5px 13px 5px; }
+      .mobile-controls { display: flex; }
+      .footer { align-items: flex-start; }
+      .footer-note { display: none; }
+      .upgrade-panel .actions { grid-template-columns: 1fr; overflow-y: auto; }
+      .upgrade-card { min-height: 112px; gap: 7px; padding: 13px 15px; }
+      .upgrade-name { font-size: 16px; }
+      .boss-status { top: 42px; width: min(340px, 76%); }
+    }
+    @media (max-height: 620px) and (max-width: 900px) {
+      .stage { height: 55dvh; min-height: 280px; }
+      #joystick { width: 90px; height: 90px; }
+      #stick { width: 36px; height: 36px; }
+      .mobile-controls { inset: auto 18px 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
   </style>
 </head>
 <body>
   <main class="shell">
-    <header><div class="brand">流形迴響 <span>MANIFOLD ECHOES · GAMEPLAY PROTOTYPE</span></div><div class="hint">WASD / 方向鍵移動　·　E 旋轉方塊　·　子彈自動發射</div></header>
+    <header class="topline">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span><div class="brand-name">流形迴響<span class="brand-sub">MANIFOLD ECHOES · LIVE SYSTEM</span></div></div>
+      <div class="top-hint">WASD / 方向鍵移動　·　E 旋轉方塊　·　子彈自動發射</div>
+    </header>
     <section class="hud" aria-label="戰鬥狀態">
-      <div class="stat"><label>VITALITY</label><strong id="hp">100 / 100</strong><div class="meter"><i id="hp-fill"></i></div></div>
-      <div class="stat"><label>RESONANCE</label><strong id="xp">0 / 5</strong><div class="meter"><i id="xp-fill"></i></div></div>
-      <div class="stat"><label>LEVEL</label><strong id="level">1</strong></div>
-      <div class="stat"><label>TIME</label><strong id="time">00:00</strong></div>
-      <div class="stat"><label>KILLS / SCORE</label><strong><span id="kills">0</span> / <span id="score">0</span></strong></div>
+      <div class="stat stat-vitality"><div class="stat-label"><span>VITALITY / 生命</span><span>01</span></div><strong class="stat-value" id="hp">100 / 100</strong><div class="meter" role="meter" aria-label="生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="hp-fill"></i></div></div>
+      <div class="stat stat-resonance"><div class="stat-label"><span>RESONANCE / 共振</span><span>02</span></div><strong class="stat-value" id="xp">0 / 5</strong><div class="meter" role="meter" aria-label="共振經驗" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"><i id="xp-fill"></i></div></div>
+      <div class="stat stat-compact"><div class="stat-label"><span>LEVEL</span></div><strong class="stat-value" id="level">01</strong></div>
+      <div class="stat stat-compact"><div class="stat-label"><span>TIME</span></div><strong class="stat-value" id="time">00:00</strong></div>
+      <div class="stat stat-compact"><div class="stat-label"><span>KILLS</span></div><strong class="stat-value" id="kills">0</strong></div>
+      <div class="stat stat-compact"><div class="stat-label"><span>SCORE</span></div><strong class="stat-value" id="score">0</strong></div>
     </section>
-    <section class="stage">
+    <section class="stage" aria-label="遊戲戰場">
       <canvas id="arena" aria-label="俯視角生存射擊遊戲戰場"></canvas>
-      <div class="message" id="message">移動、閃避，讓空間替你作戰。</div>
-      <div class="mobile-controls"><div id="joystick" aria-label="移動搖桿"><div id="stick"></div></div><button id="rotate" type="button">旋轉方塊 ↻</button></div>
+      <div class="message" id="message" aria-live="polite">移動、閃避，讓空間替你作戰。</div>
+      <div class="boss-status" id="boss-status" hidden>
+        <div class="boss-heading"><span>RIFT CORE / 裂隙核心守衛</span><span id="boss-value">100%</span></div>
+        <div class="meter" role="meter" aria-label="Boss 生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="boss-fill"></i></div>
+      </div>
+      <div class="mobile-controls">
+        <div id="joystick" role="application" aria-label="移動搖桿"><div id="stick"></div></div>
+        <button id="rotate" type="button">旋轉方塊 ↻</button>
+      </div>
       <div class="overlay" id="overlay">
-        <div class="panel"><h1 id="overlay-title">流形迴響</h1><p id="overlay-copy"></p><div class="actions" id="overlay-actions"></div></div>
+        <div class="panel" id="overlay-panel"><h1 id="overlay-title">流形迴響</h1><p class="panel-copy" id="overlay-copy"></p><div class="actions" id="overlay-actions"></div></div>
       </div>
     </section>
-    <footer class="controls"><div class="legend"><span><i class="dot" style="background:#5D81C7"></i>玩家</span><span><i class="dot" style="background:#BE4449"></i>敵人</span><span><i class="dot" style="background:#9CC9D9"></i>能量／可操控方塊</span><span><i class="dot" style="background:#B3B3B3"></i>固定結構</span></div><span class="desktop-only">擊敗敵人收集能量，升級卡片會參考你的近期玩法。</span></footer>
+    <footer class="footer">
+      <div class="legend">
+        <span class="legend-item"><i class="dot" style="background:#5D81C7"></i>玩家</span>
+        <span class="legend-item"><i class="dot" style="background:#BE4449"></i>威脅</span>
+        <span class="legend-item"><i class="dot" style="background:#9CC9D9"></i>共振／可操控空間</span>
+        <span class="legend-item"><i class="dot" style="background:#B3B3B3"></i>固定結構</span>
+      </div>
+      <span class="footer-note">你的行為，正在改變下一次共振。</span>
+    </footer>
   </main>
   <script type="module" src="./UI/main.js"></script>
 </body>

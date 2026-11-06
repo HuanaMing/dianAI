@@ -4,9 +4,12 @@ import { buildArena, blocked, updateWorld, fireAtTarget, drawWorld } from "../wo
 
 const canvas=document.querySelector("#arena"),ctx=canvas.getContext("2d");
 const hud={hp:document.querySelector("#hp"),xp:document.querySelector("#xp"),level:document.querySelector("#level"),time:document.querySelector("#time"),kills:document.querySelector("#kills"),score:document.querySelector("#score"),message:document.querySelector("#message")};
-const overlay=document.querySelector("#overlay"),overlayTitle=document.querySelector("#overlay-title"),overlayCopy=document.querySelector("#overlay-copy"),overlayActions=document.querySelector("#overlay-actions");
+const hpFill=document.querySelector("#hp-fill"),xpFill=document.querySelector("#xp-fill");
+const hpMeter=hpFill.parentElement,xpMeter=xpFill.parentElement;
+const bossStatus=document.querySelector("#boss-status"),bossFill=document.querySelector("#boss-fill"),bossValue=document.querySelector("#boss-value");
+const overlay=document.querySelector("#overlay"),overlayPanel=document.querySelector("#overlay-panel"),overlayTitle=document.querySelector("#overlay-title"),overlayCopy=document.querySelector("#overlay-copy"),overlayActions=document.querySelector("#overlay-actions");
 const joystick=document.querySelector("#joystick"),stick=document.querySelector("#stick");
-let state=createState(),width=0,height=0,dpr=1,joystickPointer=null,stickCenter={x:0,y:0};
+let state=createState(),width=0,height=0,dpr=1,joystickPointer=null;
 state._drawCards=()=>drawWeightedCards(state);
 
 function resize(){
@@ -19,18 +22,32 @@ function resize(){
 window.addEventListener("resize",resize);resize();
 state.paused=true;
 function showOverlay(title,copy,actions){
+  overlayPanel.classList.remove("upgrade-panel");
   overlayTitle.textContent=title;overlayCopy.textContent=copy;overlayActions.replaceChildren();
-  for(const item of actions){const button=document.createElement("button");button.className="action";button.textContent=item.label;button.addEventListener("click",item.run);overlayActions.append(button);}
+  for(const item of actions){const button=document.createElement("button");button.className="action";button.type="button";button.textContent=item.label;button.addEventListener("click",item.run);overlayActions.append(button);}
   overlay.hidden=false;
 }
-function hideOverlay(){overlay.hidden=true;}
+function hideOverlay(){overlay.hidden=true;overlayPanel.classList.remove("upgrade-panel");}
 function startGame(){state.paused=false;state.started=true;hideOverlay();state.message="自動射擊已啟動。靠近青色方塊，按 E 改變它的方向。";}
 function restart(){
   const keepSize={w:width,h:height};state=createState();state._drawCards=()=>drawWeightedCards(state);state.paused=false;state.started=true;state.hitCooldown=0;buildArena(state,keepSize.w,keepSize.h);state._built=true;hideOverlay();
 }
 function levelUp(){
-  const cards=state.cards;
-  showOverlay("流形迴響 · 能力共振","你的近期行為改變了候選卡片權重。選擇一項強化。",cards.map(card=>({label:card.kind+"｜"+card.name+" — "+card.desc,run:()=>{card.apply(state.player);state.selectedCard=card.id;state.paused=false;state.cards=[];hideOverlay();state.message="已取得「"+card.name+"」。世界記住了你的選擇。";}})));
+  overlayPanel.classList.add("upgrade-panel");
+  overlayTitle.textContent="能力共振";
+  overlayCopy.textContent="近期行為正在影響候選權重。選擇一項強化，卡池仍會保持開放。";
+  overlayActions.replaceChildren();
+  for(const card of state.cards){
+    const button=document.createElement("button");button.type="button";button.className="upgrade-card";
+    const kind=document.createElement("span");kind.className="upgrade-kind";kind.textContent=card.kind+" / EVOLUTION";
+    const name=document.createElement("strong");name.className="upgrade-name";name.textContent=card.name;
+    const desc=document.createElement("span");desc.className="upgrade-desc";desc.textContent=card.desc;
+    const prompt=document.createElement("span");prompt.className="upgrade-prompt";prompt.textContent="選擇此共振 ↗";
+    button.append(kind,name,desc,prompt);
+    button.addEventListener("click",()=>{card.apply(state.player);state.selectedCard=card.id;state.paused=false;state.cards=[];hideOverlay();state.message="已取得「"+card.name+"」。世界記住了你的選擇。";});
+    overlayActions.append(button);
+  }
+  overlay.hidden=false;
 }
 function endGame(){
   const won=state.player.hp>0;
@@ -38,12 +55,19 @@ function endGame(){
 }
 function formatTime(seconds){const n=Math.floor(seconds);return String(Math.floor(n/60)).padStart(2,"0")+":"+String(n%60).padStart(2,"0");}
 function updateHud(){
-  hud.hp.textContent=Math.ceil(state.player.hp)+" / "+state.player.maxHp;
-  hud.xp.textContent=state.xp+" / "+state.xpNext;hud.level.textContent=state.level;
+  const hp=Math.ceil(state.player.hp),hpRatio=state.player.hp/state.player.maxHp,xpRatio=state.xp/state.xpNext;
+  hud.hp.textContent=hp+" / "+state.player.maxHp;
+  hud.xp.textContent=state.xp+" / "+state.xpNext;hud.level.textContent=String(state.level).padStart(2,"0");
   hud.time.textContent=formatTime(state.elapsed);hud.kills.textContent=state.kills;hud.score.textContent=state.score;
   hud.message.textContent=state.message;
-  document.querySelector("#hp-fill").style.width=(state.player.hp/state.player.maxHp*100)+"%";
-  document.querySelector("#xp-fill").style.width=(state.xp/state.xpNext*100)+"%";
+  hpFill.style.width=(clamp(hpRatio,0,1)*100)+"%";xpFill.style.width=(clamp(xpRatio,0,1)*100)+"%";
+  hpMeter.setAttribute("aria-valuemax",String(state.player.maxHp));hpMeter.setAttribute("aria-valuenow",String(hp));
+  xpMeter.setAttribute("aria-valuemax",String(state.xpNext));xpMeter.setAttribute("aria-valuenow",String(state.xp));
+  if(state.boss){
+    bossStatus.hidden=false;const ratio=clamp(state.boss.hp/state.boss.maxHp,0,1);
+    bossFill.style.width=(ratio*100)+"%";bossValue.textContent=Math.ceil(ratio*100)+"%";
+    bossStatus.querySelector('[role="meter"]').setAttribute("aria-valuenow",String(Math.ceil(ratio*100)));
+  }else bossStatus.hidden=true;
 }
 function inputVector(){
   const keys=state.input.keys;let x=state.input.x,y=state.input.y;
@@ -63,7 +87,7 @@ window.addEventListener("keydown",e=>{
   if(key===" "&&state.ended)restart();
 });
 window.addEventListener("keyup",e=>state.input.keys.delete(e.key.toLowerCase()));
-window.addEventListener("blur",()=>{state.input.keys.clear();state.input.x=0;state.input.y=0;});
+window.addEventListener("blur",()=>{state.input.keys.clear();state.input.x=0;state.input.y=0;releaseStick();});
 function joystickMove(e){
   const rect=joystick.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
   const dx=e.clientX-cx,dy=e.clientY-cy,max=rect.width*.34,len=Math.hypot(dx,dy)||1;
@@ -98,5 +122,5 @@ function step(now){
   }
   drawWorld(ctx,state,width,height);updateHud();requestAnimationFrame(step);
 }
-showOverlay("流形迴響","一個會回應你行為的生存戰場。WASD／方向鍵或左下搖桿移動；子彈自動攻擊。靠近青色方塊，按 E 或觸控按鈕旋轉它。",[ {label:"進入戰場",run:startGame} ]);
+showOverlay("流形迴響","一個會回應你行為的生存戰場。WASD／方向鍵或左下搖桿移動；子彈自動攻擊。靠近青色方塊，按 E 或觸控按鈕旋轉它。",[{label:"進入戰場",run:startGame}]);
 requestAnimationFrame(step);
