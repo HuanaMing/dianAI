@@ -28,7 +28,7 @@
     .brand-name { font-size: clamp(17px, 2.4vw, 23px); font-weight: 850; letter-spacing: .12em; line-height: 1.15; }
     .brand-sub { display: block; color: var(--energy); font-size: 9px; letter-spacing: .25em; font-weight: 650; margin-top: 5px; }
     .top-hint { color: var(--grey); font-size: 11px; text-align: right; letter-spacing: .04em; }
-    .hud { display: grid; grid-template-columns: minmax(210px, 1.5fr) minmax(190px, 1.35fr) repeat(3, minmax(82px, .55fr)); gap: 8px; }
+    .hud { display: grid; grid-template-columns: minmax(180px, 1.4fr) minmax(180px, 1.2fr) repeat(4, minmax(64px, .5fr)); gap: 8px; }
     .stat { position: relative; min-width: 0; padding: 10px 12px 11px; border: var(--line); border-radius: 15px 7px 15px 7px; background: var(--space); overflow: hidden; }
     .stat::before { content: ""; position: absolute; width: 34px; height: 34px; right: -17px; top: -17px; border: 1px solid var(--energy); border-radius: 50%; }
     .stat-label { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--energy); font-size: 9px; letter-spacing: .16em; font-weight: 750; }
@@ -51,7 +51,7 @@
     #stick { width: 44px; height: 44px; border-radius: 50% 42% 54% 46%; background: var(--blue); border: 2px solid var(--white); pointer-events: none; }
     #rotate { pointer-events: auto; border: 1px solid var(--energy); border-radius: 16px 6px 16px 6px; background: var(--space); color: var(--white); padding: 13px 16px; font-size: 12px; font-weight: 800; touch-action: manipulation; min-height: 48px; }
     #rotate:active { background: var(--blue); color: var(--ink); }
-    .overlay { position: absolute; z-index: 4; inset: 0; display: grid; place-items: center; padding: 22px; background: var(--ink); }
+    .overlay { position: absolute; z-index: 4; inset: 0; display: grid; place-items: center; padding: 22px; background: rgba(51, 51, 51, .88); }
     .overlay[hidden] { display: none; }
     .panel { width: min(100%, 540px); max-height: 100%; overflow-y: auto; padding: clamp(22px, 4vw, 34px); border: 1px solid var(--energy); border-radius: 34px 10px 34px 10px; background: var(--space); text-align: center; }
     .panel::before { content: "MANIFOLD SIGNAL / ACTIVE"; display: block; margin-bottom: 13px; color: var(--energy); font-size: 9px; font-weight: 800; letter-spacing: .24em; }
