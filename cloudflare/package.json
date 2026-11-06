@@ -2,9 +2,10 @@
   "name": "dianai",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
-    "preview": "wrangler preview",
-    "deploy": "wrangler deploy"
+    "build": "node build.mjs",
+    "dev": "npm run build && wrangler dev",
+    "preview": "npm run build && wrangler preview",
+    "deploy": "npm run build && wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "4.135.0"

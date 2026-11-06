@@ -1,5 +1,5 @@
-import { COLORS } from "./model.js";
-import { clamp, distance, nearest } from "./compute.js";
+import { COLORS } from "../model/model.js";
+import { clamp, distance, nearest } from "../compute/compute.js";
 
 export function buildArena(state,w,h) {
   state.player.x=w/2; state.player.y=h/2;

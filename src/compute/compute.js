@@ -1,4 +1,4 @@
-import { CARD_POOL } from "./model.js";
+import { CARD_POOL } from "../model/model.js";
 
 export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 export const distance = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);

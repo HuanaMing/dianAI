@@ -1,6 +1,6 @@
-import { COLORS, createState } from "./model.js";
-import { clamp, drawWeightedCards, recordBehavior, nearest } from "./compute.js";
-import { buildArena, blocked, updateWorld, fireAtTarget, drawWorld } from "./world.js";
+import { COLORS, createState } from "../model/model.js";
+import { clamp, drawWeightedCards, recordBehavior, nearest } from "../compute/compute.js";
+import { buildArena, blocked, updateWorld, fireAtTarget, drawWorld } from "../world/world.js";
 
 const canvas=document.querySelector("#arena"),ctx=canvas.getContext("2d");
 const hud={hp:document.querySelector("#hp"),xp:document.querySelector("#xp"),level:document.querySelector("#level"),time:document.querySelector("#time"),kills:document.querySelector("#kills"),score:document.querySelector("#score"),message:document.querySelector("#message")};
@@ -67,7 +67,7 @@ window.addEventListener("blur",()=>{state.input.keys.clear();state.input.x=0;sta
 function joystickMove(e){
   const rect=joystick.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
   const dx=e.clientX-cx,dy=e.clientY-cy,max=rect.width*.34,len=Math.hypot(dx,dy)||1;
-  const scale=Math.min(1,max/len);state.input.x=dx/ max*scale;state.input.y=dy/max*scale;
+  const scale=Math.min(1,max/len);state.input.x=dx/max*scale;state.input.y=dy/max*scale;
   stick.style.transform="translate("+dx*scale+"px,"+dy*scale+"px)";
 }
 joystick.addEventListener("pointerdown",e=>{joystickPointer=e.pointerId;joystick.setPointerCapture(e.pointerId);joystickMove(e);});
