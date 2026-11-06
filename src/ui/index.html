@@ -22,16 +22,16 @@
   <main>
     <div class="tag">DIANAI · MERGE PREVIEW</div>
     <h1>按鈕測試</h1>
-    <p>目前版本：main（合併前）</p>
+    <p>目前版本：PR 預覽（合併後效果）</p>
     <output id="count" aria-live="polite">0</output>
-    <button id="add" type="button">按一下 +2</button>
-    <small>每次點擊，數字增加 2</small>
+    <button id="add" type="button">按一下 +1</button>
+    <small>每次點擊，數字增加 1</small>
   </main>
   <script>
     let count = 0;
     const output = document.querySelector("#count");
     document.querySelector("#add").addEventListener("click", () => {
-      count += 2;
+      count += 1;
       output.textContent = count;
     });
   </script>
