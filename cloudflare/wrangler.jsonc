@@ -3,6 +3,6 @@
   "name": "dianai",
   "main": "../src/index.js",
   "compatibility_date": "2026-11-06",
-  "assets": { "directory": "./src/ui", "binding": "ASSETS" },
+  "assets": { "directory": "../src/ui", "binding": "ASSETS" },
   "previews": {}
 }
