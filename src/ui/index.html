@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#101a2b">
+  <title>dianAI · 開發預覽實驗室</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="dianAI 首頁">
+        <span class="brand-mark">d</span>
+        <span>dianAI <small>DEVELOPMENT LAB</small></span>
+      </a>
+      <span class="environment"><i></i> PREVIEW ENVIRONMENT</span>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">BRANCH PLAYGROUND</p>
+        <h1>開發預覽實驗室<span>.</span></h1>
+        <p class="lead">每個分支都能擁有獨立的測試空間。這裡是 dianAI 的前端測試站骨架，未來可以逐步接入正式功能。</p>
+      </section>
+
+      <section class="summary-grid" aria-label="預覽環境資訊">
+        <article class="panel environment-panel">
+          <div class="panel-heading">
+            <span class="icon">⌁</span>
+            <div><p class="eyebrow">CURRENT ENVIRONMENT</p><h2>目前環境</h2></div>
+          </div>
+          <dl>
+            <div><dt>請求主機</dt><dd id="hostname">讀取中…</dd></div>
+            <div><dt>瀏覽器時間</dt><dd id="client-time">讀取中…</dd></div>
+            <div><dt>頁面版本</dt><dd>Test Site · 0.1.0</dd></div>
+          </dl>
+        </article>
+
+        <article class="panel health-panel">
+          <div class="panel-heading">
+            <span class="icon">⌘</span>
+            <div><p class="eyebrow">WORKER STATUS</p><h2>服務健康狀態</h2></div>
+          </div>
+          <div class="health-status">
+            <span class="status-dot" id="health-dot"></span>
+            <strong id="health-label">檢查中</strong>
+          </div>
+          <p class="muted" id="health-detail">正在向 Worker 的 /health 端點送出請求。</p>
+          <button class="button button-secondary" id="health-refresh" type="button">重新檢查</button>
+        </article>
+      </section>
+
+      <section class="panel playground">
+        <div class="section-heading">
+          <div><p class="eyebrow">INTERACTION CHECK</p><h2>互動元件測試</h2></div>
+          <span class="section-number">01 / UI</span>
+        </div>
+        <p class="muted">這個區域用來確認 Preview 不只會顯示畫面，也能正常載入 JavaScript 並處理使用者操作。</p>
+        <div class="counter">
+          <div><span class="counter-label">按鈕互動次數</span><strong id="count">0</strong></div>
+          <button class="button" id="count-button" type="button">點我測試 +1</button>
+        </div>
+        <p class="feedback" id="interaction-feedback" aria-live="polite">等待第一次互動。</p>
+      </section>
+
+      <section class="notice">
+        <span class="notice-icon">✳</span>
+        <div><strong>目前是測試站，不是正式產品</strong><p>尚未接入遊戲、資料庫、登入系統或正式 API。後續功能會在獨立分支開發，並透過 Preview 人工驗收。</p></div>
+      </section>
+    </main>
+
+    <footer><span>dianAI Development Lab</span><span>Built for branch previews</span></footer>
+  </div>
+</body>
+</html>
