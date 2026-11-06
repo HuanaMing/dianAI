@@ -7,6 +7,7 @@ const hud={hp:document.querySelector("#hp"),xp:document.querySelector("#xp"),lev
 const overlay=document.querySelector("#overlay"),overlayTitle=document.querySelector("#overlay-title"),overlayCopy=document.querySelector("#overlay-copy"),overlayActions=document.querySelector("#overlay-actions");
 const joystick=document.querySelector("#joystick"),stick=document.querySelector("#stick");
 let state=createState(),width=0,height=0,dpr=1,joystickPointer=null,stickCenter={x:0,y:0};
+state._drawCards=()=>drawWeightedCards(state);
 
 function resize(){
   const rect=canvas.getBoundingClientRect();dpr=Math.min(window.devicePixelRatio||1,2);
@@ -25,7 +26,7 @@ function showOverlay(title,copy,actions){
 function hideOverlay(){overlay.hidden=true;}
 function startGame(){state.paused=false;state.started=true;hideOverlay();state.message="自動射擊已啟動。靠近青色方塊，按 E 改變它的方向。";}
 function restart(){
-  const keepSize={w:width,h:height};state=createState();state.paused=false;state.started=true;state.hitCooldown=0;buildArena(state,keepSize.w,keepSize.h);state._built=true;hideOverlay();
+  const keepSize={w:width,h:height};state=createState();state._drawCards=()=>drawWeightedCards(state);state.paused=false;state.started=true;state.hitCooldown=0;buildArena(state,keepSize.w,keepSize.h);state._built=true;hideOverlay();
 }
 function levelUp(){
   const cards=state.cards;
