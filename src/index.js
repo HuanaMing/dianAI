@@ -1,3 +1,4 @@
+// Explicit push-event probe for Cloudflare Worker Preview builds.
 const html = `<!doctype html>
 <html lang="zh-Hant">
 <head>
