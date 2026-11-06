@@ -20,7 +20,7 @@ export const CARD_POOL = [
 
 export function createState() {
   return {
-    running:true, paused:false, ended:false, elapsed:0, score:0, kills:0, level:1, xp:0, xpNext:5,
+    running:true, paused:false, ended:false, elapsed:0, score:0, kills:0, level:1, xp:0, xpNext:5, hitCooldown:0,
     player:{x:0,y:0,r:12,hp:100,maxHp:100,speed:220,fireTimer:0,bulletSpeed:470,range:440,pierce:0,spread:false,orbit:0,closeDamage:0,moveFireRate:1,curve:false,evade:false,reflect:false,prism:false,rift:false,boost:0},
     enemies:[], bullets:[], enemyBullets:[], orbs:[], particles:[],
     blocks:[], spawnTimer:0, bossSpawned:false, boss:null, cards:[], selectedCard:null,
