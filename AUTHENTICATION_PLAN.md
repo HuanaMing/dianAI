@@ -137,45 +137,37 @@ Cloudflare 帳號另有既存資料庫 `diangarden-saves`，本專案不會使�
 Cloudflare Worker Secrets 尚未設定前，不啟用真實登入；Preview 與 Production 共用正式 D1，未建立隔離策略前不得在 Preview 執行 OAuth Callback 或任何會寫入使用者資料的測試。Production Worker 已部署，但設定 Production Secrets 會實際啟用正式登入，仍須先完成測試與風險檢查，並另行取得主人明確核准。
 
 
-## 11. OAuth 測試隔離策略（待決策）
+## 11. OAuth 測試隔離策略（已決定）
 
-### 已知事實與風險
+### 已確認決策
 
-- Preview Worker dianai-preview 與 Production Worker dianai 目前都綁定同一個遠端 D1 dianai-db。
-- 因此 Preview 的 Better Auth 若成功完成 OAuth Callback，可能在正式資料庫建立或更新 user、account、session、verification 資料。
-- Production Worker 已部署，但必要 Worker Secrets 尚未設定；目前 Auth endpoint 回傳 HTTP 503，正式登入尚未啟用。
-- 不得把「Preview 網址」視為「測試資料隔離」；目前兩個環境只有 Worker 與 Secrets 設定邊界，沒有 D1 資料邊界。
+- **已決定維持單一遠端 D1**：Production 與 Wrangler Preview 繼續使用唯一遠端資料庫 dianai-db，不增加第二個 Cloudflare D1。
+- **不建立第二個遠端 D1**：本階段不建立獨立 Preview D1，也不修改 Preview／Production 的 D1 binding。
+- **採用本機端到端 OAuth**：使用 Wrangler 本機 Worker、本機 D1 與本機專用 Google OAuth Client 測試登入流程；本機 D1 與遠端正式資料庫分開。
+- **Production Secrets 維持未設定**：在本機測試、正式環境檢查及主人另行核准前，不設定 Production Worker Secrets，不開放正式登入／公開註冊。
+- Preview 與 Production 共用正式 D1；不得在 Preview 執行 OAuth Callback、註冊、登入或其他可能寫入使用者資料的測試。
 
-### 可行方案
+### 本機測試設定與已驗證項目
 
-1. **本機端到端 OAuth（建議先採用）**
-   - 使用 Wrangler 本機 Worker 與本機 D1，維持與遠端 dianai-db 的資料隔離。
-   - 使用獨立的 Google OAuth 測試 Client，僅設定 http://localhost:8787/api/auth/callback/google 等本機測試 Callback。
-   - 本機 .dev.vars 只存測試用憑證；不得複製 Production Secret，也不得把憑證提交至 Git。
-   - 可驗證 Google OAuth Callback、Better Auth Session 與本機 D1 寫入；不能證明 Cloudflare Preview 的正式網域、Cookie 或 Worker Secrets 設定正確。
+- 本機 Worker URL：http://localhost:8787。
+- 本機 OAuth Callback：http://localhost:8787/api/auth/callback/google。
+- 本機 .dev.vars 已存在 BETTER_AUTH_URL、BETTER_AUTH_TRUSTED_ORIGINS、BETTER_AUTH_SECRET、GOOGLE_CLIENT_ID、GOOGLE_CLIENT_SECRET；不得輸出或提交任何憑證值。
+- Wrangler 本機 D1 已有 Better Auth 的 user、session、account、verification 資料表，migration list 顯示沒有待套用項目。
+- 本機首頁 HTTP 200；/api/auth/get-session HTTP 200，未登入時回傳 null。
+- /api/auth/sign-in/social 回應 HTTP 200，成功產生 Google 授權網址；授權網址 host 為 accounts.google.com，redirect_uri 指向上述 localhost Callback，並包含 OAuth state。
+- 上述結果只驗證本機 Worker、Auth 初始化與 OAuth 授權起始端點；尚未完成 Google 帳號實際授權、Callback、Session 建立及完整登入／登出驗收。
 
-2. **建立獨立 Preview D1（若需要部署環境端到端驗證）**
-   - 為 Preview 建立專用 D1，Preview DB binding 改指向該資料庫，並獨立套用 Better Auth migration。
-   - Preview 使用獨立 Google OAuth Client／Callback 與 Preview 專用 Worker Secrets；Production 保持原 D1 與 Secrets 不變。
-   - 這會改變目前「單一遠端 D1」決策，並增加一個 Cloudflare 資源及維護工作；建立前須確認免費額度、計費與主人核准。
-   - Preview 驗證完成後，仍須另行規劃正式 OAuth 上線與正式資料驗收。
+### 後續執行順序
 
-3. **直接在 Production 測試（不建議作為第一選擇）**
-   - 會在正式 D1 建立真實使用者、帳號關聯與 Session，可能留下資料及觸發正式註冊流程。
-   - 除非先定義測試帳號、資料清理、回復與使用者告知方式，否則不執行。
+1. 確認 Google OAuth Client 已將 http://localhost:8787/api/auth/callback/google 加入 Authorized redirect URIs；若未加入，需由主人在 Google Cloud Console 調整。
+2. 由主人在本機瀏覽器完成 Google 帳號授權；確認瀏覽器回到 localhost Callback。
+3. 驗證登入後 Session、登出、重新載入後 Session 狀態，以及本機 D1 的 user／account／session 資料；不得查詢或修改遠端正式 D1 的使用者資料。
+4. 完成本機端到端測試後，更新驗收紀錄。若未來確實需要 Cloudflare Preview 的真實 OAuth 驗證，必須重新提出資料隔離方案；本決策不授權新增遠端 D1。
+5. Production Secrets 設定會啟用正式登入／公開註冊；必須在正式網域、Google OAuth Consent Screen／測試使用者政策、安全檢查與驗收完成後，另行取得主人明確核准。
 
-### 建議執行順序
+### 尚未完成
 
-1. 先由主人確認是否維持單一遠端 D1；在此之前不建立第二個遠端資料庫。
-2. 若維持單一遠端 D1，先完成本機 D1 + 獨立 Google OAuth 測試 Client 的端到端驗證。
-3. 若要求驗證已部署的 Preview OAuth，先取得建立獨立 Preview D1 的核准，再修改 Wrangler Preview binding、套用 migration、設定 Preview 專用 Secrets。
-4. 測試完成後，檢查登入、登出、Session 恢復、Cookie、錯誤流程與 D1 寫入範圍。
-5. Production Secrets 設定會啟用正式登入／公開註冊；必須在上述驗收、Google OAuth Consent Screen／測試使用者政策及正式網域確認後，另行取得主人明確核准。
-
-### 待主人核准
-
-- 是否維持單一遠端 D1，先只做本機端到端 OAuth 測試。
-- 或是否接受增加獨立 Preview D1，以取得部署環境端到端 OAuth 測試能力。
-- 在上述選擇確定前，Production Worker Secrets 維持未設定，正式登入維持關閉。
-
+- Google Cloud Console 中 localhost Callback 的實際授權設定尚未由本次工具驗證。
+- Google 帳號實際授權、OAuth Callback、Session 建立、登出與 D1 寫入尚待完成。
+- Production Worker Secrets 維持未設定，正式登入維持關閉。
 ---
