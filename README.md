@@ -103,7 +103,10 @@ npm run deploy
 - 不覆蓋既有未提交變更；提交前檢查完整 diff 與機密資訊。
 - 發布關卡：**Branch → Cloudflare Preview → TinyFish → 人工審查 → Merge → Production**。
 - 每次修改先執行適當測試；部署前必須完成 Preview 與 TinyFish 驗收。
-- Merge 與 Production 部署都必須取得主人明確核准；未核准不得執行。
+- **不影響 main 的工作**可自主完成，不需逐項等待核准：包含本機修改與測試、建立／切換功能分支、非 main 分支 commit／push、建立或更新 PR、CI，以及不觸及正式資料的 Preview 驗證。
+- 合併到 `main` 會改變主分支，必須取得主人對該次合併的**明確核准**；單次核准不構成永久授權。
+- Production 部署、正式環境設定變更，以及會寫入／遷移正式資料的操作，仍須取得主人明確核准。
+- Preview 與 Production 共用遠端 D1；不得在 Preview 執行 OAuth Callback、註冊、登入或其他可能寫入正式資料的測試。免逐項核准不會解除此資料安全限制。
 
 ## Graphify 專案地圖
 
