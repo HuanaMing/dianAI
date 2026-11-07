@@ -2,7 +2,29 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dianai",
   "main": "../src/index.js",
-  "compatibility_date": "2026-11-06",
+  "compatibility_date": "2026-09-25",
+  "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": "./public", "binding": "ASSETS" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dianai-db",
+      "database_id": "43029c56-82fe-4593-a224-3a497ad377a8",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "env": {
+    "preview": {
+      "name": "dianai-preview",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "dianai-db",
+          "database_id": "43029c56-82fe-4593-a224-3a497ad377a8",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  },
   "previews": {}
 }

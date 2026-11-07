@@ -1,0 +1,7 @@
+# Copy this file to .dev.vars for local development.
+# Never commit .dev.vars or put real credentials in this example file.
+BETTER_AUTH_URL=http://localhost:8787
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:8787
+BETTER_AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
+GOOGLE_CLIENT_ID=replace-with-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=replace-with-google-oauth-client-secret

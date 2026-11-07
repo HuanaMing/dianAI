@@ -1,13 +1,21 @@
 {
-  "name": "dianai",
+  "name": "dianai-website",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "test": "npm run build && node --test ../tests/site-build.test.mjs ../tests/auth-worker.test.mjs",
+    "test:auth": "node --test ../tests/auth-worker.test.mjs",
     "dev": "npm run build && wrangler dev",
-    "preview": "npm run build && wrangler preview",
-    "deploy": "npm run build && wrangler deploy"
+    "preview": "npm run build && wrangler deploy --env preview",
+    "deploy": "npm run build && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply dianai-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply dianai-db --remote"
   },
   "devDependencies": {
     "wrangler": "4.135.0"
+  },
+  "dependencies": {
+    "better-auth": "1.7.18"
   }
 }

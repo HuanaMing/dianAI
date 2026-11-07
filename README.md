@@ -1,138 +1,134 @@
-# 《流形迴響》 MANIFOLD ECHOES
+# dianAI
 
-《流形迴響》是一款面向電腦與手機的俯視角生存射擊遊戲。玩家在一個由幾何結構與流動形體構成、彷彿具有生命的空間中生存，透過移動、閃避、子彈戰鬥及操控部分空間方塊應對不斷增加的威脅。
+dianAI 是部署於 Cloudflare 的網站專案。目前提供靜態網站與 Google 帳號登入入口；Better Auth Worker 整合及單一遠端 D1 schema 已完成設定。Google OAuth 憑證與 Worker Secrets 尚未設定，因此尚不能完成真實登入。
 
-> 你如何穿越這個世界，世界便如何回應你。
+## 專案現況
 
-本 README 提供共同工作的 AI Agent 與開發者快速理解專案目標、核心玩法、美術約束及開發原則。詳細玩法以 [遊戲設計文件](docs/game-design.md) 為準；若本文件與 GDD 有差異，應先檢查兩者並提出同步修正，不要自行猜測。
+- 網站內容：由 `site/` 提供。
+- 靜態資產：由 `assets/` 提供。
+- Cloudflare Worker：`src/index.js` 將 `/api/auth/*` 交給 Better Auth，其餘請求交給 Static Assets binding。
+- Better Auth：`cloudflare/src/auth.js` 建立 Google OAuth 與 D1 Auth 設定。
+- D1 schema：`cloudflare/migrations/0001_better_auth.sql`。
+- 建置與測試：使用 Node.js，設定位於 `cloudflare/package.json`。
+- 部署平台：Cloudflare Workers Static Assets，使用 Wrangler。
+- 驗證：包含網站建置與 Worker Auth 路由 smoke tests；Cloudflare Preview 頁面載入與桌面 UI 檢查已完成；真實 Google OAuth 流程尚未測試。
 
-## 目前可玩原型
+## 目錄結構
 
-已加入第一個瀏覽器玩法原型：WASD／方向鍵與手機虛擬搖桿移動、自動瞄準射擊、三種普通敵人、固定與可旋轉方塊、經驗升級，以及依近期移動／遠近距離／空間操控行為調整卡片權重。原型 Boss 在 02:00 出現，計時流程以 10 分鐘為終點。
-
-操作：電腦按 E 旋轉附近青色方塊；手機使用左下搖桿與「旋轉方塊」按鈕。
-
-目前仍是玩法驗證版：本機存檔、完整 Boss 階段、數值平衡、行為模型校準及手機實機驗收尚未完成；不得視為 GDD 已定案。
-
-## 專案核心
-
-本作融合三個彼此相關的核心：
-
-1. **生存射擊**：敵人持續出現，玩家需要移動、閃避並使用自動發射的子彈生存。
-2. **可回應的空間**：戰場包含固定方塊、可由玩家操控的方塊，以及會改變移動或子彈路徑的特殊空間規則。
-3. **玩家行為塑造能力**：遊戲觀察玩家近期的實際玩法，並調整升級卡片的出現權重，讓玩家逐漸形成自己的戰鬥風格。
-
-### 不可偏離的核心規則
-
-- **唯一武器是子彈**。不新增刀劍、雷射槍、炸彈等獨立武器類別；強化應以改變子彈行為為主。
-- 子彈自動發射；玩家主要負責移動、閃避、空間操控及升級選擇。
-- 行為分析影響卡片的**出現機率／權重**，不應把卡池鎖死，也不應強迫玩家維持既有流派。
-- 行為分析應重視近期行為，使玩家改變玩法後，卡片傾向也能逐步改變。
-- 空間不是純背景。方塊與特殊規則必須實際影響玩家、敵人或子彈的移動與戰術。
-- 幾何與流動形體融合，空間應呈現彷彿有生命、會呼吸或變形的感覺；避免厚重軍事基地或傳統戰爭美術。
-
-## 初版 MVP 範圍
-
-| 項目 | 初版目標 |
+| 路徑 | 用途 |
 | --- | --- |
-| 普通敵人 | 3 種：追獵者、疾行者、重裝者 |
-| Boss | 1 種：裂隙核心守衛（暫定名稱） |
-| 戰場 | 1 張 |
-| 強化卡片 | 12 種候選卡片 |
-| 武器 | 1 種：子彈 |
-| 單場戰鬥時間 | 10 分鐘 |
-| 存檔 | 本機存檔 |
-| 平台 | 電腦與手機 |
+| `.github/workflows/` | GitHub Actions 自動執行網站測試 |
+| `assets/` | 網站靜態資產來源 |
+| `site/` | 網站 HTML 來源，目前包含 Google 登入介面 |
+| `src/index.js` | Cloudflare Worker 入口與 Auth 路由 |
+| `cloudflare/src/auth.js` | Better Auth、Google OAuth 與 D1 binding 設定 |
+| `cloudflare/` | Wrangler 設定、建置腳本、部署輸出與套件設定 |
+| `cloudflare/migrations/` | D1 schema migration |
+| `cloudflare/public/` | 建置產生的 Static Assets，不直接編輯 |
+| `tests/` | Node.js smoke tests |
+| `AUTHENTICATION_PLAN.md` | Google 登入與公開註冊規劃及實作狀態 |
+| `AGENTS.md` | 專案 Agent 規範入口，連結至工作區共用規範 |
 
-初版優先驗證核心循環：
+## 本機需求
 
-**移動 → 自動射擊 → 利用空間 → 擊敗敵人並取得升級 → 行為影響選卡 → 面對更強敵人。**
+- Node.js 24（與 GitHub Actions 測試環境一致）
+- npm
+- Wrangler 依賴由 `cloudflare/package.json` 管理
 
-MVP 數量是範圍限制，不代表所有細節已完成平衡或驗證。卡片數值、敵人生成曲線、Boss 時序、方塊操控成本及行為分析公式，都應透過可遊玩原型逐步驗證。
+## 建置與測試
 
-## 玩家行為如何影響升級
+在 PowerShell 執行：
 
-遊戲預計觀察的行為包含：
+```powershell
+Set-Location C:\AI-Workspace\dianAI\cloudflare
+npm install
+npm test
+```
 
-- 與敵人的平均距離及距離分布。
-- 移動頻率、移動時間比例與移動軌跡。
-- 受傷頻率及受傷間隔。
-- 子彈命中時的距離與反彈後命中次數。
-- 方塊操控頻率及空間連接／傳送的使用情況。
-- 靜止時間比例。
+`npm test` 會先執行 `build.mjs`，將 `site/index.html` 與 `assets/` 複製到 `cloudflare/public/`，再執行網站及 Worker Auth 路由 smoke tests。
 
-例如，長時間保持距離可能提高遠程卡片權重；貼近敵人作戰可能提高近距離卡片權重；頻繁移動或改變方向可能提高機動、軌跡類卡片權重；常使用方塊則可能提高空間類卡片權重。
+## 本機 Auth 設定
 
-上述只是設計方向。分析窗口、權重公式、抽卡規則與保底機制尚待原型測試，不可將示例直接當成已實作規格。
+1. 複製 `cloudflare/.dev.vars.example` 為 `cloudflare/.dev.vars`。
+2. 使用隨機產生且至少 32 字元的 `BETTER_AUTH_SECRET`。
+3. 填入 Google OAuth Client ID／Secret；本機 Callback URL 為 `http://localhost:8787/api/auth/callback/google`。
+4. 在本機 D1 套用 migration：
 
-## 空間與世界
+```powershell
+Set-Location C:\AI-Workspace\dianAI\cloudflare
+npm run db:migrate:local
+npm run dev
+```
 
-戰場至少包含三種空間元素：
+`.dev.vars` 已加入 Git 忽略清單，不得提交真實憑證。若未設定 D1 或必要環境變數，Auth 路由會回傳 503，不會退回無資料庫的登入模式。
 
-- **固定方塊**：構成世界的基本結構，不由玩家移動。
-- **可操控方塊**：玩家能以明確的操作推動、旋轉或改變其狀態。
-- **特殊空間結構**：例如反射、折射、傳送或局部空間變化，讓移動與子彈路徑產生不同結果。
+## Cloudflare D1 與環境設定
 
-初版只需要一張戰場。先建立少量但有清楚用途的互動規則，不要在核心循環尚未驗證前擴張成複雜的關卡編輯器或大量地形種類。
+本專案只使用一個 Cloudflare D1 遠端資料庫，維持單一資料庫的免費方案用量策略：
 
-## 美術與七色硬性限制
+- D1 名稱：`dianai-db`。
+- D1 ID：`43029c56-82fe-4593-a224-3a497ad377a8`。
+- Binding：`DB`。
+- Production 與 Wrangler `preview` 環境都指向同一個 D1；兩者**共用使用者、Session 與所有應用資料**，沒有資料隔離。Preview 測試不得建立、修改或刪除真實使用者資料。
+- 本機開發使用 Wrangler 的本機 D1 狀態，與遠端 `dianai-db` 分開。
+- `cloudflare/migrations/0001_better_auth.sql` 已套用至遠端 D1，建立 Better Auth 的 `user`、`session`、`account`、`verification` 四張資料表及索引；Wrangler migration tracking 記錄為 `0001_better_auth.sql`。
+- 本機套用 Migration：`npm run db:migrate:local`。
+- 遠端套用 Migration：`npm run db:migrate:remote`。單一遠端資料庫只需套用一次，不要分別對 Preview／Production 重複執行。
 
-美術方向為 **有機幾何（Organic Geometry）**：幾何結構與流動形體融合，空間彷彿具有生命。
+Worker 必須設定 `BETTER_AUTH_URL`、`BETTER_AUTH_SECRET`、`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`；可信任來源可用 `BETTER_AUTH_TRUSTED_ORIGINS` 額外指定。Google OAuth Callback：`<環境網域>/api/auth/callback/google`。
 
-所有 UI、角色、敵人、場景、方塊、粒子、特效、陰影與文字，均只能使用以下七種色彩，不得引入第八種色相：
+`diangarden-saves` 是其他用途的資料庫，不會拿來當 dianAI Auth 資料庫。Cloudflare Preview Worker 已部署：https://dianai-preview.ry15968.workers.dev。Preview 首頁回應 HTTP 200，Auth 未設定時回傳預期的 HTTP 503。TinyFish 已完成桌面版唯讀檢查，主人已完成初步人工檢視。Preview 故意未設定 Worker Secrets，也未執行 OAuth Callback，因為 Preview 與 Production 共用同一個 D1；目前不進行可能寫入真實使用者資料的測試。Production Worker 尚未部署。
+## 本機預覽與部署
 
-| HEX | 建議用途 |
-| --- | --- |
-| `#5D81C7` | 玩家、子彈、主要互動 |
-| `#37339D` | 戰場深色、空間背景 |
-| `#9CC9D9` | 能量、空間特效、流動亮部 |
-| `#BE4449` | 敵人、危險、傷害提示 |
-| `#B3B3B3` | 方塊、機械、結構 |
-| `#F3F3F3` | 文字、亮部、資訊 |
-| `#333333` | 輪廓、介面、暗部 |
+```powershell
+Set-Location C:\AI-Workspace\dianAI\cloudflare
 
-漸層只能混合上述色票。實作時應集中管理色彩變數，並留意透明度、混色、陰影、Canvas／WebGL、瀏覽器原生控件及預設樣式可能產生色票以外的顏色。不能只檢查 CSS 色碼，也要檢查最終畫面效果。
+# 本機開發
+npm run dev
 
-## 平台與操作
+# Wrangler Preview（Preview 與 Production 共用 D1，測試不得寫入正式資料）
+npm run preview
 
-- 電腦：WASD／方向鍵移動。
-- 手機：虛擬搖桿移動。
-- 子彈自動發射。
-- 升級選卡時暫停戰鬥，選擇後恢復。
-- 介面與操作需支援不同螢幕尺寸及觸控，不可只完成桌面版。
+# 正式部署（必須先取得主人明確核准）
+npm run deploy
+```
 
-## Agent 協作與開發原則
+正式部署前必須先通過 `npm test`，並完成下方發布流程。Preview 與 Production 的環境變數、Secrets、OAuth Callback 網址必須分開確認；不得將機密寫入前端或 Git。
 
-開始任何工作前，必須先閱讀根目錄的 `AGENTS.md` 與本 README，並依任務檢查相關文件及程式碼。
+## Git 與發布流程
 
-- 以繁體中文溝通，文件與任務紀錄以繁體中文為主。
-- 先理解現有程式結構與資料流，再做最小、可理解的修改。
-- 沿用既有技術與模組分工；未經確認，不引入新框架、套件或外部服務，不做大規模重構。
-- `src/model/` 負責資料模型；`src/UI/` 負責介面與輸入；`src/compute/` 負責純運算；`src/world/` 負責世界與場景。若實際目錄結構尚未建立，先確認再新增，不要假設它已存在。
-- 一般工作使用 `feature/<name>`、`fix/<name>` 或 `experiment/<name>` 分支；不要直接提交 `main`。
-- 不得丟棄使用者資料、使用 force push 或改寫遠端歷史。
-- 未經主人明確同意，不得合併 PR、刪除分支或部署正式環境。
-- 對每項工作如實回報修改內容、驗證方式、結果與未完成事項。GitHub 寫入成功不代表測試通過。
-- 設計草案與候選方案必須清楚標示；只有經原型驗證及確認後才能升格為正式規格。
+- 以功能分支承載變更；透過 Pull Request 對照 `main`。
+- 不覆蓋既有未提交變更；提交前檢查完整 diff 與機密資訊。
+- 發布關卡：**Branch → Cloudflare Preview → TinyFish → 人工審查 → Merge → Production**。
+- 每次修改先執行適當測試；部署前必須完成 Preview 與 TinyFish 驗收。
+- Merge 與 Production 部署都必須取得主人明確核准；未核准不得執行。
 
-### dianAI 專案的發布驗收流程
+## Graphify 專案地圖
 
-程式功能分支依既定流程進行：
+dianAI 已註冊 Graphify 專案索引：
 
-**Branch → Preview → TinyFish → 人工驗收 → Merge → Production**
+- Project ID：`dianAI`
+- 原始程式：`C:\AI-Workspace\dianAI`
+- 索引輸出：`C:\AI-Workspace\indexes\graphify\dianAI\graphify-out\graph.json`
+- 互動地圖：同目錄的 `graph.html`
+- 索引只放在工作區 `indexes/`，不放進本專案 Git 儲存庫。
 
-1. 從最新 `main` 建立獨立分支。
-2. 建立 Cloudflare Preview。
-3. 使用 TinyFish 檢查頁面載入、視覺與互動。
-4. 提供 Preview 網址，等待主人親自人工驗收。
-5. 只有主人明確同意後才合併 PR。
-6. 合併後確認 Cloudflare Production 部署與正式網站。
+程式碼結構有實質變更（新增／刪除模組、改變匯入或呼叫關係、調整 Worker 路由或主要資料流）後，應更新 Graphify 程式碼索引。單純修改文案、註解或樣式且不影響程式結構時，不必重建地圖。
 
-TinyFish 通過不等於人工驗收完成。文件專用變更可依實際風險省略遊戲瀏覽器驗收，但必須說明原因；不得假稱已完成未執行的檢查。
+在 PowerShell 執行：
 
-## 文件導覽
+```powershell
+$Graphify = Join-Path $env:USERPROFILE '.local\bin\graphify.exe'
+$env:GRAPHIFY_OUT = 'C:\AI-Workspace\indexes\graphify\dianAI\graphify-out'
 
-- [AGENTS.md](AGENTS.md)：所有共同工作 Agent 必須遵守的專案工作規範。
-- [docs/game-design.md](docs/game-design.md)：遊戲設計文件（GDD），記錄核心玩法、MVP、候選卡片、敵人、空間與美術規格。
+& $Graphify update 'C:\AI-Workspace\dianAI'
+& $Graphify export html --graph (Join-Path $env:GRAPHIFY_OUT 'graph.json')
+```
 
-若要修改核心玩法或美術限制，先更新並核對 GDD 與 README，避免不同 Agent 依據互相矛盾的規格工作。
+更新後確認 Graphify 輸出成功、`graph.json` 可讀取、已刪除來源不再出現在節點中，並檢查 `graph.html` 已更新。Graphify 只輔助理解程式；仍須閱讀原始程式並執行測試。若索引更新失敗，必須回報失敗，不可把舊地圖說成最新。
+
+## Agent 工作規範
+
+請先閱讀工作區共用規範 [AGENTS.md](../AGENTS.md)，再依本 README 的專案設定執行。專案入口文件為 [AGENTS.md](AGENTS.md)。
+
+---
