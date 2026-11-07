@@ -1,6 +1,6 @@
 # dianAI Google 登入與公開註冊規劃
 
-> 狀態：Better Auth Worker 整合、單一遠端 D1 與初始 schema 已完成。Cloudflare Preview 已部署，首頁 HTTP 200、未設定 Auth 時安全回傳 HTTP 503；TinyFish 桌面版唯讀檢查及主人初步人工檢視已完成。Preview 與 Production 共用 D1，因此 Preview 未設定 Worker Secrets、未執行 OAuth Callback，也未測試真實登入。Production Worker 尚未部署。
+> 狀態：Better Auth Worker 整合、單一遠端 D1 與初始 schema 已完成。Production Worker 已部署；Cloudflare Preview Worker 亦已部署；兩者首頁 smoke test 為 HTTP 200，Auth 因 Worker Secrets 尚未設定而安全回傳 HTTP 503。Production 部署版本為 be72fa5e-5e7b-41e6-9ea8-1c153b1920b9。Preview 與 Production 共用正式 D1，尚未執行真實 OAuth Callback 或登入測試；待先決定 OAuth 測試隔離策略。TinyFish 桌面版唯讀檢查及主人初步人工檢視已完成。
 
 ## 1. 產品目標與範圍
 
@@ -98,7 +98,7 @@ Cloudflare 帳號另有既存資料庫 `diangarden-saves`，本專案不會使�
 6. **整合 Better Auth**：Worker Auth handler、原生 D1 database binding、schema migration 已加入。
 7. **完成登入介面**：Google 登入、登出、載入中、錯誤狀態及登入者資訊介面已加入。
 8. **保護 API**：Auth endpoints 由 Better Auth 處理；產品尚無其他受保護 API，後續新增時必須在伺服器端驗證 Session。
-9. **測試與發布**：本機 npm test 4/4 通過；Cloudflare Preview 已部署（Worker 版本 18a5bb25-24d2-43c0-bc3d-a5eafa328fab），首頁 HTTP 200、Auth 未設定時 HTTP 503；TinyFish 桌面版唯讀檢查完成，主人已初步人工檢視。真實 OAuth Callback 未測試，因 Preview 與 Production 共用 D1，避免測試寫入正式使用者資料。Merge 依本次 PR 流程處理；Production 尚未部署。
+9. **測試與發布**：本機 npm test 4/4 通過；Cloudflare Preview 與 Production 均已部署，兩者首頁 smoke test HTTP 200；Production Worker 版本為 be72fa5e-5e7b-41e6-9ea8-1c153b1920b9。Production Auth endpoint HTTP 503，因必要 Worker Secrets 尚未設定；Cloudflare Production 部署成功不代表 Google OAuth 已可用。TinyFish 桌面版唯讀檢查完成，主人已初步人工檢視。真實 OAuth Callback 尚未測試，因 Preview 與 Production 共用正式 D1，避免測試寫入正式使用者資料。
 ## 9. 驗收條件
 
 - 未登入的一般訪客可以直接使用 Google 帳號註冊，不需邀請碼或人工白名單。
@@ -110,6 +110,7 @@ Cloudflare 帳號另有既存資料庫 `diangarden-saves`，本專案不會使�
 - Google OAuth Client Secret 與 Better Auth Secret 不會出現在前端資產或 Git。
 - Preview 與 Production 共用同一個 D1；OAuth Callback 及 Secrets 依各自環境正確設定，且 Preview 不污染正式資料。
 - 本機測試通過；Cloudflare Preview 頁面載入、TinyFish 桌面版唯讀檢查及主人初步人工檢視完成。真實 OAuth Callback 與 D1 寫入驗證須先建立不會觸及正式資料的隔離測試策略。
+
 
 ## 10. 已確認與待確認事項
 
@@ -133,6 +134,40 @@ Cloudflare 帳號另有既存資料庫 `diangarden-saves`，本專案不會使�
 - 第一階段是否只需登入／登出與基本使用者識別，或同時需要保存使用者專屬資料。
 - Cloudflare Preview 上的實際 OAuth Callback、Session Cookie 與 D1 寫入驗證。
 
-Cloudflare Worker Secrets 尚未設定前，不啟用真實登入；Preview 與 Production 共用 D1，未建立隔離策略前不得在 Preview 執行 OAuth Callback 或任何會寫入使用者資料的測試。Production 部署仍須另行取得主人明確核准。
+Cloudflare Worker Secrets 尚未設定前，不啟用真實登入；Preview 與 Production 共用正式 D1，未建立隔離策略前不得在 Preview 執行 OAuth Callback 或任何會寫入使用者資料的測試。Production Worker 已部署，但設定 Production Secrets 會實際啟用正式登入，仍須先完成測試與風險檢查，並另行取得主人明確核准。
 
+
+## 11. OAuth 測試隔離策略（已決定）
+
+### 已確認決策
+
+- **已決定維持單一遠端 D1**：Production 與 Wrangler Preview 繼續使用唯一遠端資料庫 dianai-db，不增加第二個 Cloudflare D1。
+- **不建立第二個遠端 D1**：本階段不建立獨立 Preview D1，也不修改 Preview／Production 的 D1 binding。
+- **採用本機端到端 OAuth**：使用 Wrangler 本機 Worker、本機 D1 與本機專用 Google OAuth Client 測試登入流程；本機 D1 與遠端正式資料庫分開。
+- **Production Secrets 維持未設定**：在本機測試、正式環境檢查及主人另行核准前，不設定 Production Worker Secrets，不開放正式登入／公開註冊。
+- Preview 與 Production 共用正式 D1；不得在 Preview 執行 OAuth Callback、註冊、登入或其他可能寫入使用者資料的測試。
+
+### 本機測試設定與已驗證項目
+
+- 本機 Worker URL：http://localhost:8787。
+- 本機 OAuth Callback：http://localhost:8787/api/auth/callback/google。
+- 本機 .dev.vars 已存在 BETTER_AUTH_URL、BETTER_AUTH_TRUSTED_ORIGINS、BETTER_AUTH_SECRET、GOOGLE_CLIENT_ID、GOOGLE_CLIENT_SECRET；不得輸出或提交任何憑證值。
+- Wrangler 本機 D1 已有 Better Auth 的 user、session、account、verification 資料表，migration list 顯示沒有待套用項目。
+- 本機首頁 HTTP 200；/api/auth/get-session HTTP 200，未登入時回傳 null。
+- /api/auth/sign-in/social 回應 HTTP 200，成功產生 Google 授權網址；授權網址 host 為 accounts.google.com，redirect_uri 指向上述 localhost Callback，並包含 OAuth state。
+- 上述結果只驗證本機 Worker、Auth 初始化與 OAuth 授權起始端點；尚未完成 Google 帳號實際授權、Callback、Session 建立及完整登入／登出驗收。
+
+### 後續執行順序
+
+1. 確認 Google OAuth Client 已將 http://localhost:8787/api/auth/callback/google 加入 Authorized redirect URIs；若未加入，需由主人在 Google Cloud Console 調整。
+2. 由主人在本機瀏覽器完成 Google 帳號授權；確認瀏覽器回到 localhost Callback。
+3. 驗證登入後 Session、登出、重新載入後 Session 狀態，以及本機 D1 的 user／account／session 資料；不得查詢或修改遠端正式 D1 的使用者資料。
+4. 完成本機端到端測試後，更新驗收紀錄。若未來確實需要 Cloudflare Preview 的真實 OAuth 驗證，必須重新提出資料隔離方案；本決策不授權新增遠端 D1。
+5. Production Secrets 設定會啟用正式登入／公開註冊；必須在正式網域、Google OAuth Consent Screen／測試使用者政策、安全檢查與驗收完成後，另行取得主人明確核准。
+
+### 尚未完成
+
+- Google Cloud Console 中 localhost Callback 的實際授權設定尚未由本次工具驗證。
+- Google 帳號實際授權、OAuth Callback、Session 建立、登出與 D1 寫入尚待完成。
+- Production Worker Secrets 維持未設定，正式登入維持關閉。
 ---

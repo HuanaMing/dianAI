@@ -77,7 +77,7 @@ npm run dev
 
 Worker 必須設定 `BETTER_AUTH_URL`、`BETTER_AUTH_SECRET`、`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`；可信任來源可用 `BETTER_AUTH_TRUSTED_ORIGINS` 額外指定。Google OAuth Callback：`<環境網域>/api/auth/callback/google`。
 
-`diangarden-saves` 是其他用途的資料庫，不會拿來當 dianAI Auth 資料庫。Cloudflare Preview Worker 已部署：https://dianai-preview.ry15968.workers.dev。Preview 首頁回應 HTTP 200，Auth 未設定時回傳預期的 HTTP 503。TinyFish 已完成桌面版唯讀檢查，主人已完成初步人工檢視。Preview 故意未設定 Worker Secrets，也未執行 OAuth Callback，因為 Preview 與 Production 共用同一個 D1；目前不進行可能寫入真實使用者資料的測試。Production Worker 尚未部署。
+`diangarden-saves` 是其他用途的資料庫，不會拿來當 dianAI Auth 資料庫。Cloudflare Preview Worker 已部署：https://dianai-preview.ry15968.workers.dev；Production Worker 已部署：https://dianai.ry15968.workers.dev。Production 部署版本為 be72fa5e-5e7b-41e6-9ea8-1c153b1920b9，Production 首頁 smoke test 回應 HTTP 200。Production 與 Preview 的 Auth 都尚未設定 Worker Secrets，Auth endpoint 目前預期回傳 HTTP 503；真實 Google OAuth 尚未啟用或驗證。Preview 與 Production 共用正式 D1，因此不得在 Preview 執行 OAuth Callback、註冊、登入或其他會寫入使用者資料的測試。TinyFish 桌面版唯讀檢查及主人初步人工檢視已完成；手機版與無障礙檢查尚未完成。
 ## 本機預覽與部署
 
 ```powershell
@@ -94,6 +94,8 @@ npm run deploy
 ```
 
 正式部署前必須先通過 `npm test`，並完成下方發布流程。Preview 與 Production 的環境變數、Secrets、OAuth Callback 網址必須分開確認；不得將機密寫入前端或 Git。
+
+目前 Production Worker 已部署，但 Worker Secrets 尚未設定，Auth endpoint 回傳 HTTP 503，代表真實登入尚未開放。設定 Production Secrets 會啟用正式 Google 登入／公開註冊，必須在 OAuth 測試與正式啟用檢查完成後另行取得主人明確核准。
 
 ## Git 與發布流程
 

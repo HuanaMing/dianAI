@@ -104,7 +104,9 @@
       try {
         const response = await fetch("/api/auth/sign-out", {
           method: "POST",
-          credentials: "same-origin"
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({})
         });
         if (!response.ok) throw new Error("登出失敗，請稍後再試。");
         signInButton.hidden = false;
