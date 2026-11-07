@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#202938">
+  <meta name="description" content="dianAI 網站服務與 Google 帳號登入。">
+  <title>dianAI｜網站服務</title>
+  <style>
+    :root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#202938;color:#f4f6f8}
+    *{box-sizing:border-box}
+    body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px}
+    main{width:min(100%,560px);padding:40px 28px;border:1px solid #526174;border-radius:18px;background:#293648;text-align:center}
+    h1{margin:0 0 12px;font-size:clamp(28px,6vw,40px)}
+    p{margin:0;color:#c5cfda;line-height:1.8}
+    .status{display:inline-block;margin-bottom:20px;padding:6px 12px;border:1px solid #6e9d85;border-radius:999px;color:#a8dfbf;font-size:13px}
+    .actions{display:grid;gap:12px;margin-top:28px}
+    button{min-height:48px;padding:12px 18px;border:0;border-radius:10px;background:#f4f6f8;color:#202938;font:inherit;font-weight:650;cursor:pointer}
+    button.secondary{border:1px solid #8291a4;background:transparent;color:#f4f6f8}
+    button:disabled{cursor:not-allowed;opacity:.55}
+    #auth-status{min-height:28px;margin-top:20px;font-size:14px}
+    #user-info{margin-top:8px;overflow-wrap:anywhere}
+  </style>
+</head>
+<body>
+  <main>
+    <span class="status">Cloudflare Workers</span>
+    <h1>dianAI</h1>
+    <p>使用 Google 帳號註冊或登入，開始使用 dianAI。</p>
+    <div class="actions">
+      <button id="google-sign-in" type="button">使用 Google 帳號登入／註冊</button>
+      <button id="google-sign-out" class="secondary" type="button" hidden>登出</button>
+    </div>
+    <p id="auth-status" role="status" aria-live="polite">正在確認登入狀態…</p>
+    <p id="user-info"></p>
+  </main>
+  <script type="module">
+    const signInButton = document.querySelector("#google-sign-in");
+    const signOutButton = document.querySelector("#google-sign-out");
+    const status = document.querySelector("#auth-status");
+    const userInfo = document.querySelector("#user-info");
+
+    async function refreshSession() {
+      signInButton.disabled = true;
+      status.textContent = "正在確認登入狀態…";
+      userInfo.textContent = "";
+
+      try {
+        const response = await fetch("/api/auth/get-session", {
+          credentials: "same-origin"
+        });
+
+        if (response.status === 503) {
+          status.textContent = "登入服務尚未完成設定，請稍後再試。";
+          return;
+        }
+        if (!response.ok) throw new Error("無法取得登入狀態");
+
+        const data = await response.json();
+        if (data?.user) {
+          status.textContent = "已成功登入。";
+          userInfo.textContent = data.user.name || data.user.email || "";
+          signInButton.hidden = true;
+          signOutButton.hidden = false;
+        } else {
+          status.textContent = "目前尚未登入。";
+          signInButton.hidden = false;
+          signOutButton.hidden = true;
+        }
+        signInButton.disabled = false;
+      } catch {
+        status.textContent = "目前無法連線至登入服務。";
+        signInButton.disabled = false;
+      }
+    }
+
+    signInButton.addEventListener("click", async () => {
+      signInButton.disabled = true;
+      status.textContent = "正在前往 Google…";
+      try {
+        const response = await fetch("/api/auth/sign-in/social", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            provider: "google",
+            callbackURL: window.location.origin
+          })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.url) {
+          throw new Error(result.message || "無法啟動 Google 登入");
+        }
+        window.location.assign(result.url);
+      } catch (error) {
+        status.textContent = error.message || "Google 登入暫時無法使用。";
+        signInButton.disabled = false;
+      }
+    });
+
+    signOutButton.addEventListener("click", async () => {
+      signOutButton.disabled = true;
+      status.textContent = "正在登出…";
+      try {
+        const response = await fetch("/api/auth/sign-out", {
+          method: "POST",
+          credentials: "same-origin"
+        });
+        if (!response.ok) throw new Error("登出失敗，請稍後再試。");
+        signInButton.hidden = false;
+        signOutButton.hidden = true;
+        await refreshSession();
+      } catch (error) {
+        status.textContent = error.message || "登出失敗，請稍後再試。";
+      } finally {
+        signOutButton.disabled = false;
+      }
+    });
+
+    refreshSession();
+  </script>
+</body>
+</html>

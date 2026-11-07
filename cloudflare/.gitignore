@@ -1,3 +1,5 @@
 node_modules/
 .wrangler/
 public/
+.dev.vars
+src/*client_secret*.json
